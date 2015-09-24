@@ -16,8 +16,8 @@ sqs = Aws::SQS::Client.new(region: REGION, credentials: Aws::Credentials.new(SQS
 sns = Aws::SNS::Client.new(region: REGION, credentials: Aws::Credentials.new(SNS_KEY_ID, SNS_ACCESS_KEY))
 ########## Set up logger
 # How to configure: http://ruby-doc.org/stdlib-2.1.0/libdoc/logger/rdoc/Logger.html
-logger = Logger.new(STDOUT)
-logger.level = Logger::DEBUG
+logger = Logger.new('server.log')
+logger.level = Logger::INFO
 logger.info "Starting up mailman"
 ########## BEGIN: Configure SQS
 queue_list = []

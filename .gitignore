@@ -1,2 +1,4 @@
+*.log
 start.sh
+stop.sh
 Gemfile.lock
