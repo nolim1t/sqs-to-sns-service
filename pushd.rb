@@ -5,7 +5,7 @@ require 'date'
 require 'json'
 require 'logger'
 
-SQS_KEY_ID = ENV['SQS_KEY_ID'] 
+SQS_KEY_ID = ENV['SQS_KEY_ID']
 SQS_ACCESS_KEY = ENV['SQS_ACCESS_KEY']
 SNS_KEY_ID = ENV['SNS_KEY_ID']
 SNS_ACCESS_KEY = ENV['SNS_ACCESS_KEY']
@@ -21,13 +21,13 @@ logger.level = Logger::INFO
 logger.info "Starting up mailman"
 ########## BEGIN: Configure SQS
 queue_list = []
-sqs.list_queues.queue_urls.each{|queue| 
+sqs.list_queues.queue_urls.each{|queue|
     queue_list << queue
 }
 if queue_list.length == 0
     queue_url = sqs.create_queue(queue_name: "Messages").queue_url
 else
-    queue_list.each {|urls| 
+    queue_list.each {|urls|
         if urls.include? "Messages"
             queue_url = urls
         end
@@ -53,11 +53,13 @@ end
 ########## END: Configure SNS
 
 while true
-	logger.debug "Checking for messages..."	
+	logger.debug "Checking for messages..."
 	# Get work from Messages queue
 	sqs.receive_message({queue_url: queue_url}).messages.each {|message|
+      # Delete message so that another processor doesn't grab this
+      sqs.delete_message({queue_url: queue_url, receipt_handle: message.receipt_handle})
 	    logger.info "Processed message received"
-	    logger.debug "Message received from queue: #{message}"		
+	    logger.debug "Message received from queue: #{message}"
 	    from_queue = JSON.parse(message.body)
 	    apspayload = {
 	        :aps => {
@@ -110,7 +112,7 @@ while true
 					    logger.info "ARN doesnt exist so creating it..."
 					    endpoint_arn = sns.create_platform_endpoint({token: pushtoken, platform_application_arn: valid_platform}).endpoint_arn
 					end
-					logger.debug "ARN Used: #{endpoint_arn}"	
+					logger.debug "ARN Used: #{endpoint_arn}"
 					push_message_id = sns.publish({
 						message_structure: 'json',
 						message: messagepayload.to_json.to_s,
@@ -121,11 +123,8 @@ while true
 	    		end
 	    	}
 	    end
-	    
-	    # Delete message
-	    sqs.delete_message({queue_url: queue_url, receipt_handle: message.receipt_handle})
-	}
+	} # End message checking
 
-	# Go to sleep
-	sleep 5
+	# Poll every second
+	sleep 1
 end
